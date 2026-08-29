@@ -1,0 +1,45 @@
+{
+  "name": "leetsync",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "postinstall": "prisma generate",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "sync": "tsx scripts/sync.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push"
+  },
+  "dependencies": {
+    "@octokit/rest": "^20.1.1",
+    "@prisma/client": "^5.19.1",
+    "clsx": "^2.1.1",
+    "dotenv": "^16.4.5",
+    "jose": "^5.8.0",
+    "lucide-react": "^0.436.0",
+    "next": "14.2.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.5.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.1",
+    "@types/react": "^18.3.4",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.7",
+    "postcss": "^8.4.41",
+    "prisma": "^5.19.1",
+    "tailwindcss": "^3.4.10",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}

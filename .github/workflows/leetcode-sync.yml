@@ -1,0 +1,42 @@
+name: LeetSync Daily Automated Synchronization
+
+on:
+  schedule:
+    # Run automatically once per day at 18:00 UTC
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+    # Allows manual execution from the GitHub Actions tab
+
+concurrency:
+  group: leetsync-daily-sync
+  cancel-in-progress: false
+
+jobs:
+  synchronize:
+    name: Daily LeetCode to GitHub Sync
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Project Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Database Client
+        run: npx prisma generate
+
+      - name: Execute LeetSync Automation Script
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          GITHUB_CLIENT_ID: ${{ secrets.GITHUB_CLIENT_ID }}
+          GITHUB_CLIENT_SECRET: ${{ secrets.GITHUB_CLIENT_SECRET }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+        run: npm run sync

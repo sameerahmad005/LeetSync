@@ -1,0 +1,151 @@
+// Prisma Schema for LeetSync (PostgreSQL production schema for Neon / Supabase / Vercel)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum SyncRunStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum SyncItemStatus {
+  SYNCED
+  SKIPPED
+  FAILED
+}
+
+enum CommitStrategy {
+  BATCH
+  INDIVIDUAL
+}
+
+enum TriggerType {
+  MANUAL
+  SCHEDULED
+}
+
+model User {
+  id               String            @id @default(cuid())
+  githubId         String            @unique
+  username         String
+  email            String?
+  name             String?
+  avatarUrl        String?
+  leetcodeUsername String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  githubAuth       GitHubAuth?
+  repositoryConfig RepositoryConfig?
+  submissions      Submission[]
+  syncRuns         SyncRun[]
+
+  @@map("users")
+}
+
+model GitHubAuth {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken String
+  tokenType   String?
+  scope       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("github_auth")
+}
+
+model RepositoryConfig {
+  id              String         @id @default(cuid())
+  userId          String         @unique
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  repoOwner       String
+  repoName        String
+  branch          String         @default("main")
+  rootDir         String         @default("solutions")
+  folderStructure String         @default("{rootDir}/{difficulty}/{problem-slug}")
+  commitMsgFormat String         @default("Sync LeetCode solution: {title}")
+  commitStrategy  CommitStrategy @default(BATCH)
+  syncReadme      Boolean        @default(true)
+  syncStats       Boolean        @default(true)
+  autoSyncEnabled Boolean        @default(true)
+  syncFrequency   String         @default("DAILY")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@map("repository_configs")
+}
+
+model Submission {
+  id                   String     @id @default(cuid())
+  userId               String
+  user                 User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leetcodeSubmissionId String
+  problemSlug          String
+  title                String
+  difficulty           Difficulty
+  language             String
+  normalizedLanguage   String
+  code                 String     @db.Text
+  status               String     @default("ACCEPTED")
+  submittedAt          DateTime
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+  syncItems            SyncItem[]
+
+  @@unique([userId, leetcodeSubmissionId], name: "userId_leetcodeSubmissionId")
+  @@map("submissions")
+}
+
+model SyncRun {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  triggerType   TriggerType   @default(MANUAL)
+  status        SyncRunStatus @default(PENDING)
+  isDryRun      Boolean       @default(false)
+  startedAt     DateTime      @default(now())
+  completedAt   DateTime?
+  detectedCount Int           @default(0)
+  syncedCount   Int           @default(0)
+  skippedCount  Int           @default(0)
+  failedCount   Int           @default(0)
+  errorMessage  String?
+  createdAt     DateTime      @default(now())
+  syncItems     SyncItem[]
+
+  @@map("sync_runs")
+}
+
+model SyncItem {
+  id              String         @id @default(cuid())
+  syncRunId       String
+  syncRun         SyncRun        @relation(fields: [syncRunId], references: [id], onDelete: Cascade)
+  submissionId    String?
+  submission      Submission?    @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+  problemSlug     String
+  title           String
+  difficulty      Difficulty
+  language        String
+  status          SyncItemStatus
+  githubPath      String?
+  githubCommitSha String?
+  errorDetails    String?
+  createdAt       DateTime       @default(now())
+
+  @@map("sync_items")
+}
